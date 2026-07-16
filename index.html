@@ -276,12 +276,30 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 .profile-kpi.accent::before { background:var(--accent); }
 .profile-kpi.blue::before { background:#818cf8; }
 .profile-charts { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
-.profile-chart-card { background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:20px; }
+.profile-chart-card { background:var(--card-bg); border:1px solid var(--border); border-radius:8px; padding:20px; max-height:280px; }
+.profile-chart-card canvas { max-height:200px; }
 .profile-chart-title { font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:14px; }
 /* Member PIN modal on Members tab */
 .member-pin-gate { text-align:center; padding:60px 40px; }
 .member-pin-gate .lock-icon { font-size:3rem; margin-bottom:20px; opacity:0.3; }
 .member-pin-gate .lock-input { max-width:240px; margin:0 auto 16px; }
+/* Profile extras */
+.timeline-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; padding:16px 20px; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; }
+.timeline-stat { text-align:center; }
+.timeline-stat .ts-val { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:var(--text); line-height:1; }
+.timeline-stat .ts-label { font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; margin-top:4px; }
+.goal-bar-wrap { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:16px 20px; }
+.goal-progress { height:10px; background:var(--surface2); border-radius:5px; overflow:hidden; margin:10px 0 6px; }
+.goal-progress-fill { height:100%; border-radius:5px; background:linear-gradient(90deg,var(--accent),var(--green)); transition:width 0.6s ease; }
+.risk-bar { display:flex; gap:12px; padding:14px 20px; background:var(--card-bg); border:1px solid var(--border); border-radius:10px; align-items:center; }
+.risk-meter { flex:1; height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+.risk-meter-fill { height:100%; border-radius:4px; transition:width 0.4s; }
+.alert-card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:14px 18px; }
+.alert-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(36,57,42,0.4); font-size:0.75rem; }
+.alert-item:last-child { border-bottom:none; }
+.alert-icon { font-size:1rem; flex-shrink:0; }
+.alert-text { flex:1; color:var(--text); }
+.alert-date { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted); white-space:nowrap; }
 @media(max-width:1100px) { .kpi-row{grid-template-columns:repeat(3,1fr);} .member-grid{grid-template-columns:repeat(2,1fr);} .ob-hero{grid-template-columns:repeat(2,1fr);} .profile-kpis{grid-template-columns:repeat(2,1fr);} .profile-charts{grid-template-columns:1fr;} }
 @media(max-width:700px) { header,nav,.page{padding-left:16px;padding-right:16px;} .kpi-row{grid-template-columns:repeat(2,1fr);} .grid-2,.grid-3{grid-template-columns:1fr;} .member-grid{grid-template-columns:1fr;} .ob-hero{grid-template-columns:repeat(2,1fr);} .ob-grid{grid-template-columns:1fr;} .profile-kpis{grid-template-columns:1fr 1fr;} .profile-charts{grid-template-columns:1fr;} }
 .page.active .card { animation:fadeUp 0.3s ease both; }
@@ -421,33 +439,73 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <div class="profile-name">MFB</div>
 <div class="profile-role">Syndicate Member</div>
 </div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-secondary btn-sm" onclick="exportMFBStatement()" style="font-size:0.6rem">📄 Export Statement</button>
 <button class="profile-logout" onclick="logoutMemberProfile()">← Back to Login</button>
 </div>
+</div>
 
+<!-- Performance Timeline -->
+<div id="mfbTimeline" style="margin-bottom:20px"></div>
+
+<!-- KPIs -->
 <div class="profile-kpis" id="mfbKpis"></div>
 
+<!-- Goal Tracker -->
+<div id="mfbGoalSection" style="margin-bottom:20px"></div>
+
+<!-- Risk Exposure -->
+<div id="mfbRiskExposure" style="margin-bottom:20px"></div>
+
+<!-- Recent Alerts -->
+<div id="mfbAlerts" style="margin-bottom:20px"></div>
+
+<!-- Charts Row 1 -->
 <div class="profile-charts">
 <div class="profile-chart-card">
 <div class="profile-chart-title">Your Equity Curve</div>
-<canvas id="mfbEquityChart" height="200"></canvas>
+<div style="position:relative;height:180px"><canvas id="mfbEquityChart"></canvas></div>
 </div>
 <div class="profile-chart-card">
 <div class="profile-chart-title">Monthly Returns</div>
-<canvas id="mfbMonthlyChart" height="200"></canvas>
+<div style="position:relative;height:180px"><canvas id="mfbMonthlyChart"></canvas></div>
 </div>
 </div>
 
+<!-- Charts Row 2 -->
 <div class="profile-charts">
 <div class="profile-chart-card">
 <div class="profile-chart-title">Your Share of Fund</div>
-<canvas id="mfbShareChart" height="180"></canvas>
+<div style="position:relative;height:160px"><canvas id="mfbShareChart"></canvas></div>
 </div>
 <div class="profile-chart-card">
 <div class="profile-chart-title">Investment Growth vs Deposit</div>
-<canvas id="mfbGrowthChart" height="180"></canvas>
+<div style="position:relative;height:160px"><canvas id="mfbGrowthChart"></canvas></div>
 </div>
 </div>
 
+<!-- Charts Row 3 — Tournament Breakdown & Deposit History -->
+<div class="profile-charts">
+<div class="profile-chart-card">
+<div class="profile-chart-title">Tournament Breakdown (Your P&L)</div>
+<div style="position:relative;height:180px"><canvas id="mfbTourneyChart"></canvas></div>
+</div>
+<div class="profile-chart-card">
+<div class="profile-chart-title">Deposit History vs Value</div>
+<div style="position:relative;height:180px"><canvas id="mfbDepositChart"></canvas></div>
+</div>
+</div>
+
+<!-- Best / Worst Weeks -->
+<div class="grid-2" style="margin-bottom:20px">
+<div class="card" id="mfbBestWeek"></div>
+<div class="card" id="mfbWorstWeek"></div>
+</div>
+
+<!-- Projected Returns -->
+<div class="card" style="margin-bottom:20px" id="mfbProjections"></div>
+
+<!-- Transaction History -->
 <div class="card" style="margin-top:20px">
 <div class="card-title">Your Transaction History</div>
 <div class="table-wrap">
@@ -778,6 +836,16 @@ buildMFBEquityChart(initialDeposit, sharePercent);
 buildMFBMonthlyChart(sharePercent);
 buildMFBShareChart(members, cfg.initials);
 buildMFBGrowthChart(initialDeposit, currentValue);
+buildMFBTourneyChart(cfg);
+buildMFBDepositChart(cfg);
+
+// Build extra features
+buildMFBTimeline(cfg);
+buildMFBGoal(cfg, currentValue);
+buildMFBRiskExposure(cfg);
+buildMFBAlerts(cfg);
+buildMFBBestWorstWeeks(cfg);
+buildMFBProjections(cfg, currentValue);
 
 // Transaction history
 const myTx = TRANSACTIONS.filter(tx=>tx.initials===cfg.initials).sort((a,b)=>parseDate(b.date)-parseDate(a.date));
@@ -795,7 +863,6 @@ function buildMFBEquityChart(initialDeposit, sharePercent) {
 destroyMfbChart('equity');
 const ctx = document.getElementById('mfbEquityChart').getContext('2d');
 const share = sharePercent / 100;
-// Build personal equity from fund running PL
 const labels=[]; const data=[];
 let personalValue = initialDeposit;
 BETS.forEach(b=>{
@@ -805,7 +872,7 @@ BETS.forEach(b=>{
   data.push(personalValue);
 });
 if(data.length===0){labels.push('Start');data.push(initialDeposit);}
-mfbCharts['equity']=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:'#4fd68c',borderWidth:2,fill:true,backgroundColor:(ctx2)=>{const g=ctx2.chart.ctx.createLinearGradient(0,0,0,200);g.addColorStop(0,'rgba(79,214,140,0.2)');g.addColorStop(1,'rgba(79,214,140,0)');return g;},tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`£${c.raw.toFixed(2)}`},backgroundColor:'#0f1912',borderColor:'#24392a',borderWidth:1,bodyColor:'#eae3d1'}},scales:{x:{display:false},y:{grid:{color:'rgba(36,57,42,0.5)'},ticks:{color:'#7c9484',callback:v=>`£${v.toFixed(0)}`}}}}});
+mfbCharts['equity']=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:'#4fd68c',borderWidth:2,fill:true,backgroundColor:(ctx2)=>{const g=ctx2.chart.ctx.createLinearGradient(0,0,0,160);g.addColorStop(0,'rgba(79,214,140,0.2)');g.addColorStop(1,'rgba(79,214,140,0)');return g;},tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`£${c.raw.toFixed(2)}`},backgroundColor:'#0f1912',borderColor:'#24392a',borderWidth:1,bodyColor:'#eae3d1'}},scales:{x:{display:false},y:{grid:{color:'rgba(36,57,42,0.5)'},ticks:{color:'#7c9484',callback:v=>`£${v.toFixed(0)}`}}}}});
 }
 
 function buildMFBMonthlyChart(sharePercent) {
@@ -833,6 +900,211 @@ function buildMFBGrowthChart(initialDeposit, currentValue) {
 destroyMfbChart('growth');
 const ctx=document.getElementById('mfbGrowthChart').getContext('2d');
 mfbCharts['growth']=new Chart(ctx,{type:'bar',data:{labels:['Initial Deposit','Current Value'],datasets:[{data:[initialDeposit,currentValue],backgroundColor:['rgba(124,148,132,0.5)','rgba(79,214,140,0.7)'],borderRadius:6,barThickness:60}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`£${c.raw.toFixed(2)}`},backgroundColor:'#0f1912',borderColor:'#24392a',borderWidth:1,bodyColor:'#eae3d1'}},scales:{x:{grid:{color:'rgba(36,57,42,0.5)'},ticks:{color:'#7c9484',callback:v=>`£${v.toFixed(0)}`}},y:{grid:{display:false},ticks:{color:'#7c9484'}}}}});
+}
+
+// ============================================================
+// MFB EXTRA FEATURES
+// ============================================================
+
+function buildMFBTimeline(cfg) {
+const firstTx = TRANSACTIONS.filter(tx=>tx.initials===cfg.initials).sort((a,b)=>parseDate(a.date)-parseDate(b.date))[0];
+const joinDate = firstTx ? parseDate(firstTx.date) : new Date();
+const now = new Date();
+const daysActive = Math.max(1, Math.floor((now - joinDate) / (1000*60*60*24)));
+const settled = BETS.filter(b=>b.won!=='Pending');
+const totalBets = settled.length;
+const won = settled.filter(b=>b.won==='Yes').length;
+const winRate = totalBets ? (won/totalBets*100) : 0;
+const totalPL = settled.reduce((s,b)=>s+b.pl,0);
+const share = getMemberStats().members[cfg.initials]?.sharePercent || 0;
+const personalPL = totalPL * (share/100);
+document.getElementById('mfbTimeline').innerHTML=`<div class="timeline-bar">
+<div class="timeline-stat"><div class="ts-val">${daysActive}</div><div class="ts-label">Days Active</div></div>
+<div class="timeline-stat"><div class="ts-val">${joinDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div><div class="ts-label">Member Since</div></div>
+<div class="timeline-stat"><div class="ts-val">${totalBets}</div><div class="ts-label">Fund Bets Placed</div></div>
+<div class="timeline-stat"><div class="ts-val" style="color:var(--green)">${winRate.toFixed(1)}%</div><div class="ts-label">Fund Win Rate</div></div>
+<div class="timeline-stat"><div class="ts-val" style="color:${personalPL>=0?'var(--green)':'var(--red)'}">${personalPL>=0?'+':''}£${personalPL.toFixed(0)}</div><div class="ts-label">Your Total Profit</div></div>
+</div>`;
+}
+
+function buildMFBGoal(cfg, currentValue) {
+const goal = 7000; // Target value
+const initial = cfg.initialDeposit;
+const progress = Math.min(100, Math.max(0, ((currentValue - initial) / (goal - initial)) * 100));
+const remaining = Math.max(0, goal - currentValue);
+document.getElementById('mfbGoalSection').innerHTML=`<div class="goal-bar-wrap">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase">Goal: £${goal.toLocaleString()}</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:${progress>=100?'var(--green)':'var(--accent)'}">${progress.toFixed(1)}%</div>
+</div>
+<div class="goal-progress"><div class="goal-progress-fill" style="width:${progress}%"></div></div>
+<div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)">
+<span>£${initial.toLocaleString('en-GB',{minimumFractionDigits:2})}</span>
+<span style="color:var(--text)">£${currentValue.toFixed(2)} now</span>
+<span>${remaining>0?'£'+remaining.toFixed(0)+' to go':'🎯 Goal reached!'}</span>
+</div>
+</div>`;
+}
+
+function buildMFBRiskExposure(cfg) {
+const share = (getMemberStats().members[cfg.initials]?.sharePercent || 0) / 100;
+const pending = BETS.filter(b=>b.won==='Pending');
+const totalPendingStake = pending.reduce((s,b)=>s+b.stake,0);
+const myExposure = totalPendingStake * share;
+const currentValue = getMemberStats().members[cfg.initials]?.currentValue || cfg.initialDeposit;
+const exposurePct = currentValue > 0 ? (myExposure / currentValue * 100) : 0;
+const color = exposurePct > 15 ? 'var(--red)' : exposurePct > 8 ? 'var(--gold)' : 'var(--green)';
+document.getElementById('mfbRiskExposure').innerHTML=`<div class="risk-bar">
+<div style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;white-space:nowrap">Risk Exposure</div>
+<div class="risk-meter"><div class="risk-meter-fill" style="width:${Math.min(100,exposurePct*3)}%;background:${color}"></div></div>
+<div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:${color};white-space:nowrap">£${myExposure.toFixed(0)} (${exposurePct.toFixed(1)}%)</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);white-space:nowrap">${pending.length} open bets</div>
+</div>`;
+}
+
+function buildMFBAlerts(cfg) {
+const share = (getMemberStats().members[cfg.initials]?.sharePercent || 0) / 100;
+const now = new Date();
+const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+const recentSettled = BETS.filter(b=>b.won!=='Pending' && b.dateObj && b.dateObj >= weekAgo);
+const weekPL = recentSettled.reduce((s,b)=>s+b.pl,0) * share;
+const alerts = [];
+if(recentSettled.length > 0) {
+  alerts.push({icon:'📊', text:`${recentSettled.length} bets settled this week: ${weekPL>=0?'+':''}£${weekPL.toFixed(2)} to your share`, date:'This week'});
+}
+const bigWins = recentSettled.filter(b=>b.pl > 100).sort((a,b)=>b.pl-a.pl).slice(0,2);
+bigWins.forEach(b=>{
+  alerts.push({icon:'🎯', text:`Big win: ${b.player||b.fixture} — +£${(b.pl*share).toFixed(2)} for you`, date:b.date});
+});
+const pending = BETS.filter(b=>b.won==='Pending');
+if(pending.length > 0) {
+  const maxReturn = pending.reduce((s,b)=>s+(b.stake*b.odds - b.stake),0) * share;
+  alerts.push({icon:'⏳', text:`${pending.length} bets pending — potential +£${maxReturn.toFixed(0)} for you`, date:'Now'});
+}
+if(alerts.length === 0) alerts.push({icon:'✅', text:'No new activity this week', date:'—'});
+document.getElementById('mfbAlerts').innerHTML=`<div class="alert-card">
+<div style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Recent Activity</div>
+${alerts.map(a=>`<div class="alert-item"><span class="alert-icon">${a.icon}</span><span class="alert-text">${a.text}</span><span class="alert-date">${a.date}</span></div>`).join('')}
+</div>`;
+}
+
+function buildMFBBestWorstWeeks(cfg) {
+const share = (getMemberStats().members[cfg.initials]?.sharePercent || 0) / 100;
+const settled = BETS.filter(b=>b.won!=='Pending' && b.dateObj);
+// Group by ISO week
+const weeks = {};
+settled.forEach(b=>{
+  const d = b.dateObj;
+  const startOfWeek = new Date(d); startOfWeek.setDate(d.getDate() - d.getDay() + 1);
+  const key = startOfWeek.toISOString().slice(0,10);
+  if(!weeks[key]) weeks[key] = {pl:0, bets:0, start:startOfWeek};
+  weeks[key].pl += b.pl; weeks[key].bets++;
+});
+const weekArr = Object.values(weeks);
+const best = weekArr.sort((a,b)=>b.pl-a.pl)[0];
+const worst = weekArr.sort((a,b)=>a.pl-b.pl)[0];
+const fmtW = d => d ? d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+document.getElementById('mfbBestWeek').innerHTML=`<div class="card-title" style="color:var(--green)">🏆 Best Week</div>
+<div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--green)">+£${best?(best.pl*share).toFixed(0):'0'}</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:4px">Week of ${best?fmtW(best.start):'—'} · ${best?best.bets:0} bets</div>`;
+document.getElementById('mfbWorstWeek').innerHTML=`<div class="card-title" style="color:var(--red)">📉 Worst Week</div>
+<div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--red)">${worst&&worst.pl<0?'-':''}£${worst?Math.abs(worst.pl*share).toFixed(0):'0'}</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:4px">Week of ${worst?fmtW(worst.start):'—'} · ${worst?worst.bets:0} bets</div>`;
+}
+
+function buildMFBProjections(cfg, currentValue) {
+const settled = BETS.filter(b=>b.won!=='Pending');
+const totalStaked = settled.reduce((s,b)=>s+b.stake,0);
+const totalPL = settled.reduce((s,b)=>s+b.pl,0);
+const roi = totalStaked > 0 ? (totalPL/totalStaked) : 0;
+const share = (getMemberStats().members[cfg.initials]?.sharePercent || 0) / 100;
+// Estimate weekly growth rate from historical data
+const firstBet = settled[0];
+const lastBet = settled[settled.length-1];
+const daySpan = (firstBet && lastBet) ? Math.max(7, (lastBet.dateObj - firstBet.dateObj)/(1000*60*60*24)) : 30;
+const dailyGrowth = totalPL > 0 ? (totalPL * share) / daySpan : 0;
+const proj6m = currentValue + (dailyGrowth * 180);
+const proj12m = currentValue + (dailyGrowth * 365);
+document.getElementById('mfbProjections').innerHTML=`<div class="card-title">📈 Projected Returns (if current pace continues)</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px">
+<div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Current ROI</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--accent)">${(roi*100).toFixed(1)}%</div></div>
+<div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">6 Month Estimate</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--green)">£${proj6m.toFixed(0)}</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted)">+£${(proj6m-currentValue).toFixed(0)}</div></div>
+<div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">12 Month Estimate</div><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--green)">£${proj12m.toFixed(0)}</div><div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted)">+£${(proj12m-currentValue).toFixed(0)}</div></div>
+</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:12px;text-align:center;letter-spacing:0.5px">⚠️ Projections based on historical performance — not guaranteed</div>`;
+}
+
+function buildMFBTourneyChart(cfg) {
+destroyMfbChart('tourney');
+const ctx = document.getElementById('mfbTourneyChart').getContext('2d');
+const share = (getMemberStats().members[cfg.initials]?.sharePercent || 0) / 100;
+const tours = {};
+BETS.filter(b=>b.won!=='Pending').forEach(b=>{const t=b.tournament||'Other'; tours[t]=(tours[t]||0)+(b.pl*share);});
+const sorted = Object.entries(tours).sort((a,b)=>b[1]-a[1]).slice(0,8);
+mfbCharts['tourney']=new Chart(ctx,{type:'bar',data:{labels:sorted.map(e=>e[0]),datasets:[{data:sorted.map(e=>e[1]),backgroundColor:sorted.map(e=>e[1]>=0?'rgba(79,214,140,0.7)':'rgba(224,72,63,0.7)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`£${c.raw.toFixed(2)}`},backgroundColor:'#0f1912',borderColor:'#24392a',borderWidth:1,bodyColor:'#eae3d1'}},scales:{x:{grid:{color:'rgba(36,57,42,0.5)'},ticks:{color:'#7c9484',callback:v=>`£${v.toFixed(0)}`}},y:{grid:{display:false},ticks:{color:'#7c9484',font:{size:9}}}}}});
+}
+
+function buildMFBDepositChart(cfg) {
+destroyMfbChart('deposit');
+const ctx = document.getElementById('mfbDepositChart').getContext('2d');
+const share = (getMemberStats().members[cfg.initials]?.sharePercent || 0) / 100;
+const myTx = TRANSACTIONS.filter(tx=>tx.initials===cfg.initials).sort((a,b)=>parseDate(a.date)-parseDate(b.date));
+const labels = []; const depositLine = []; const valueLine = [];
+let cumDeposit = 0;
+myTx.forEach(tx=>{
+  if(tx.action==='Deposit') cumDeposit+=tx.amount;
+  else cumDeposit-=tx.amount;
+  labels.push(tx.date);
+  depositLine.push(cumDeposit);
+});
+// Build value at each bet
+const settled = BETS.filter(b=>b.won!=='Pending');
+let runPL = 0;
+settled.forEach(b=>{ runPL += b.pl; });
+// Simplified: show deposit vs current value as two datasets
+const finalValue = cfg.initialDeposit + (runPL * share);
+// Use bet dates for value curve
+const valLabels=[]; const valData=[];
+let pv = cfg.initialDeposit;
+settled.forEach(b=>{pv = cfg.initialDeposit + (b.runningPL * share); valLabels.push(b.date); valData.push(pv);});
+if(valData.length===0){valLabels.push('Now');valData.push(cfg.initialDeposit);}
+mfbCharts['deposit']=new Chart(ctx,{type:'line',data:{labels:valLabels,datasets:[
+{label:'Value',data:valData,borderColor:'#4fd68c',borderWidth:2,fill:false,tension:0.4,pointRadius:0},
+{label:'Deposited',data:valLabels.map(()=>cfg.initialDeposit),borderColor:'rgba(124,148,132,0.5)',borderWidth:1,borderDash:[4,4],fill:false,pointRadius:0}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#7c9484',font:{size:10}}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: £${c.raw.toFixed(2)}`},backgroundColor:'#0f1912',borderColor:'#24392a',borderWidth:1,bodyColor:'#eae3d1'}},scales:{x:{display:false},y:{grid:{color:'rgba(36,57,42,0.5)'},ticks:{color:'#7c9484',callback:v=>`£${v.toFixed(0)}`}}}}});
+}
+
+function exportMFBStatement() {
+const cfg = MEMBER_PINS[currentMemberProfile];
+if(!cfg) return;
+const {members, unitPrice, fundValue} = getMemberStats();
+const m = members[cfg.initials];
+const currentValue = m ? m.currentValue : cfg.initialDeposit;
+const totalPL = currentValue - cfg.initialDeposit;
+const myTx = TRANSACTIONS.filter(tx=>tx.initials===cfg.initials).sort((a,b)=>parseDate(a.date)-parseDate(b.date));
+const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+let statement = `CRICKET PROPS SYNDICATE — PERSONAL STATEMENT\n`;
+statement += `Member: ${cfg.name} (${cfg.initials})\nDate: ${today}\n${'━'.repeat(50)}\n\n`;
+statement += `ACCOUNT SUMMARY\n`;
+statement += `  Initial Investment : £${cfg.initialDeposit.toFixed(2)}\n`;
+statement += `  Current Value      : £${currentValue.toFixed(2)}\n`;
+statement += `  Total P&L          : ${totalPL>=0?'+':''}£${totalPL.toFixed(2)} (${((totalPL/cfg.initialDeposit)*100).toFixed(1)}%)\n`;
+statement += `  Units Held         : ${m?m.units.toFixed(4):'0'}\n`;
+statement += `  Unit Price         : £${unitPrice.toFixed(4)}\n`;
+statement += `  Fund Share         : ${m?m.sharePercent.toFixed(1):'0'}%\n\n`;
+statement += `${'━'.repeat(50)}\nTRANSACTION HISTORY\n${'━'.repeat(50)}\n\n`;
+statement += `  ${'Date'.padEnd(12)} ${'Action'.padEnd(12)} ${'Amount'.padEnd(12)} ${'Unit Price'.padEnd(12)} Units\n`;
+statement += `  ${'-'.repeat(56)}\n`;
+myTx.forEach(tx=>{
+  statement += `  ${tx.date.padEnd(12)} ${tx.action.padEnd(12)} £${tx.amount.toFixed(2).padEnd(10)} £${tx.unitPrice.toFixed(4).padEnd(10)} ${tx.units.toFixed(4)}\n`;
+});
+statement += `\n${'━'.repeat(50)}\nGenerated by Cricket Props Syndicate Tracker\n`;
+const blob = new Blob([statement],{type:'text/plain'});
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href=url; a.download=`${cfg.initials}_statement_${new Date().toISOString().slice(0,10)}.txt`;
+a.click(); URL.revokeObjectURL(url);
+showToast('Statement exported');
 }
 
 // ============================================================
