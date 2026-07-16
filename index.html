@@ -433,17 +433,7 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <!-- MFB Personal Profile (shown when MFB logs in with their pin) -->
 <div id="membersMFBProfile" style="display:none">
 <div class="member-profile">
-<div class="profile-header">
-<div class="profile-avatar">MFB</div>
-<div class="profile-info">
-<div class="profile-name">MFB</div>
-<div class="profile-role">Syndicate Member</div>
-</div>
-<div style="display:flex;gap:8px;align-items:center">
-<button class="btn btn-secondary btn-sm" onclick="exportMFBStatement()" style="font-size:0.6rem">📄 Export Statement</button>
-<button class="profile-logout" onclick="logoutMemberProfile()">← Back to Login</button>
-</div>
-</div>
+<div class="profile-header" id="mfbProfileHeader"></div>
 
 <!-- Performance Timeline -->
 <div id="mfbTimeline" style="margin-bottom:20px"></div>
@@ -637,7 +627,8 @@ db.settings({ ignoreUndefinedProperties: true });
 // =====================================================================
 const ADMIN_PIN = '4560';
 const MEMBER_PINS = {
-  'MFB': { pin: '1093', name: 'MFB', initials: 'MFB', initialDeposit: 5573.23 }
+  'MFB': { pin: '1093', name: 'MFB', initials: 'MFB', initialDeposit: 5573.23 },
+  'MD': { pin: '2809', name: 'MD', initials: 'MD', initialDeposit: 2646.02 }
 };
 // Legacy passwords still work
 const LEGACY_ADMIN = 'Angstrom1!';
@@ -811,6 +802,15 @@ function buildMFBProfile() {
 const memberKey = currentMemberProfile;
 const cfg = MEMBER_PINS[memberKey];
 if(!cfg) return;
+
+// Render dynamic header
+document.getElementById('mfbProfileHeader').innerHTML=`
+<div class="profile-avatar">${cfg.initials}</div>
+<div class="profile-info"><div class="profile-name">${cfg.name}</div><div class="profile-role">Syndicate Member</div></div>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-secondary btn-sm" onclick="exportMFBStatement()" style="font-size:0.6rem">📄 Export Statement</button>
+<button class="profile-logout" onclick="logoutMemberProfile()">← Back to Login</button>
+</div>`;
 
 const {members, unitPrice, fundValue} = getMemberStats();
 const m = members[cfg.initials];
