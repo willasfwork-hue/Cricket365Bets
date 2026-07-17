@@ -418,6 +418,7 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
 <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:var(--accent)">Member Holdings</div>
 <div style="display:flex;gap:10px">
+<button class="btn btn-secondary btn-sm" id="adminViewProfileBtn" onclick="adminViewOwnProfile()" style="display:none">👤 My Profile</button>
 <button class="btn btn-gold admin-only" onclick="openWeeklyReport()">📋 Weekly Report</button>
 <button class="btn btn-primary admin-only" onclick="openAddMember()">+ Add Member</button>
 </div>
@@ -628,7 +629,15 @@ db.settings({ ignoreUndefinedProperties: true });
 const ADMIN_PIN = '4560';
 const MEMBER_PINS = {
   'MFB': { pin: '1093', name: 'MFB', initials: 'MFB', initialDeposit: 5573.23 },
-  'MD': { pin: '2809', name: 'MD', initials: 'MD', initialDeposit: 2646.02 }
+  'MD': { pin: '2809', name: 'MD', initials: 'MD', initialDeposit: 2646.02 },
+  'WA': { pin: '4560', name: 'WA', initials: 'WA', initialDeposit: 7021.01 },
+  'LC': { pin: '2681', name: 'LC', initials: 'LC', initialDeposit: 1416.30 },
+  'AM': { pin: '0208', name: 'AM', initials: 'AM', initialDeposit: 1088.31 },
+  'COD': { pin: '2121', name: 'COD', initials: 'COD', initialDeposit: 1834.48 },
+  'JL': { pin: '8214', name: 'JL', initials: 'JL', initialDeposit: 773.41 },
+  'SB': { pin: '0000', name: 'SB', initials: 'SB', initialDeposit: 4705.22 },
+  'DF': { pin: '0001', name: 'DF', initials: 'DF', initialDeposit: 1844.37 },
+  'EW': { pin: '0002', name: 'EW', initials: 'EW', initialDeposit: 1245.31 }
 };
 // Legacy passwords still work
 const LEGACY_ADMIN = 'Angstrom1!';
@@ -682,11 +691,22 @@ function showLoadingError(msg){const e=document.getElementById('loadingError');c
 
 function getMemberStats() {
 const members={};
-TRANSACTIONS.forEach(tx=>{const k=tx.initials;if(!members[k])members[k]={initials:k,name:MEMBER_NAMES[k]||k,units:0,deposited:0,withdrawn:0,txCount:0};members[k].units+=tx.units;members[k].txCount++;if(tx.action==='Deposit')members[k].deposited+=tx.amount;if(tx.action==='Withdrawal')members[k].withdrawn+=tx.amount;});
+// Seed from MEMBER_PINS so everyone shows up even without transactions
+for(const [key, cfg] of Object.entries(MEMBER_PINS)) {
+  members[cfg.initials] = {initials:cfg.initials, name:cfg.name||cfg.initials, units:0, deposited:0, withdrawn:0, txCount:0, seededDeposit:cfg.initialDeposit};
+}
+TRANSACTIONS.forEach(tx=>{const k=tx.initials;if(!members[k])members[k]={initials:k,name:MEMBER_NAMES[k]||k,units:0,deposited:0,withdrawn:0,txCount:0,seededDeposit:0};members[k].units+=tx.units;members[k].txCount++;if(tx.action==='Deposit')members[k].deposited+=tx.amount;if(tx.action==='Withdrawal')members[k].withdrawn+=tx.amount;});
 const settledBets=BETS.filter(b=>b.won!=='Pending');
 const totalPL=settledBets.reduce((s,b)=>s+b.pl,0);
-const totalDeposited=TRANSACTIONS.filter(t=>t.action==='Deposit').reduce((s,t)=>s+t.amount,0);
-const totalWithdrawn=TRANSACTIONS.filter(t=>t.action==='Withdrawal').reduce((s,t)=>s+t.amount,0);
+// For members with no transactions, use their seededDeposit to calculate units at price 1
+Object.values(members).forEach(m=>{
+  if(m.txCount===0 && m.seededDeposit > 0) {
+    m.units = m.seededDeposit; // 1 unit = £1 at inception
+    m.deposited = m.seededDeposit;
+  }
+});
+const totalDeposited=Object.values(members).reduce((s,m)=>s+m.deposited,0);
+const totalWithdrawn=Object.values(members).reduce((s,m)=>s+m.withdrawn,0);
 const fundValue=totalDeposited-totalWithdrawn+totalPL;
 const totalUnits=Object.values(members).reduce((s,m)=>s+m.units,0);
 const unitPrice=totalUnits>0?fundValue/totalUnits:1;
@@ -703,7 +723,13 @@ const err=document.getElementById('lockError');
 const val=input.value.trim();
 if(val===ADMIN_PIN || val===LEGACY_ADMIN) {
   sessionStorage.setItem('syndicateAuth','admin');
-  unlockApp('admin');
+  // Check if admin pin also belongs to a member (e.g. WA)
+  let adminMember = null;
+  for(const [key, cfg] of Object.entries(MEMBER_PINS)) {
+    if(cfg.pin === ADMIN_PIN) { adminMember = key; break; }
+  }
+  sessionStorage.setItem('syndicateMember', adminMember || '');
+  unlockApp('admin', adminMember);
 } else if(val===LEGACY_VIEWER) {
   sessionStorage.setItem('syndicateAuth','viewer');
   unlockApp('viewer');
@@ -754,12 +780,21 @@ const mfbProfile = document.getElementById('membersMFBProfile');
 const pinGate = document.getElementById('memberPinGate');
 if(currentRole === 'admin') {
   adminView.style.display=''; mfbProfile.style.display='none'; pinGate.style.display='none';
+  // Show "My Profile" button if admin is also a member
+  const btn = document.getElementById('adminViewProfileBtn');
+  if(btn) btn.style.display = currentMemberProfile ? '' : 'none';
 } else if(currentRole === 'member' && currentMemberProfile) {
   adminView.style.display='none'; mfbProfile.style.display=''; pinGate.style.display='none';
   buildMFBProfile();
 } else {
   adminView.style.display='none'; mfbProfile.style.display='none'; pinGate.style.display='';
 }
+}
+
+function adminViewOwnProfile() {
+document.getElementById('membersAdminView').style.display='none';
+document.getElementById('membersMFBProfile').style.display='';
+buildMFBProfile();
 }
 
 function checkMemberPin() {
@@ -783,9 +818,11 @@ if(found){
 }
 
 function logoutMemberProfile() {
-currentMemberProfile=null;
 document.getElementById('membersMFBProfile').style.display='none';
-if(currentRole==='member'){
+if(currentRole==='admin'){
+  document.getElementById('membersAdminView').style.display='';
+} else if(currentRole==='member'){
+  currentMemberProfile=null;
   document.getElementById('memberPinGate').style.display='';
 } else {
   document.getElementById('membersAdminView').style.display='';
