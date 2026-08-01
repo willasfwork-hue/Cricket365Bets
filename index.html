@@ -524,6 +524,21 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <div class="modal-overlay" id="addBetModal"><div class="modal">
 <button class="modal-close" onclick="closeModal('addBetModal')">✕</button>
 <div class="modal-title">Add New Bet</div>
+<!-- Paste from Sheet -->
+<div id="nb_pastePanel" style="margin-bottom:20px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+<button class="btn btn-gold btn-sm" onclick="togglePastePanel('nb')" id="nb_pasteToggle">📋 Paste from Sheet</button>
+<span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:1px">COPY A ROW FROM GOOGLE SHEETS</span>
+</div>
+<div id="nb_pasteArea" style="display:none">
+<textarea class="form-input" id="nb_pasteInput" rows="3" placeholder="Paste a row from your Google Sheet here (with or without header row)..." style="resize:vertical;font-size:0.72rem;line-height:1.6;margin-bottom:10px"></textarea>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-primary btn-sm" onclick="parseSheetPaste('nb')">Parse & Fill</button>
+<button class="btn btn-secondary btn-sm" onclick="clearPastePanel('nb')">Clear</button>
+<span id="nb_pasteStatus" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)"></span>
+</div>
+</div>
+</div>
 <div class="bettype-toggle"><div class="bettype-btn active" id="nb_type_Single" onclick="setBetType('nb','Single')">Single</div><div class="bettype-btn" id="nb_type_Double" onclick="setBetType('nb','Double')">Double</div></div>
 <div class="form-row"><div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="nb_date"></div><div class="form-group"><label class="form-label">Bookmaker</label><input type="text" class="form-input" id="nb_bookmaker" placeholder="e.g. Bet365"></div></div>
 <div class="form-row"><div class="form-group"><label class="form-label">Sport</label><select class="form-select" id="nb_sport"><option value="Cricket">Cricket</option><option value="Basketball">Basketball</option><option value="Football">Football</option><option value="Other">Other</option></select></div><div class="form-group"><label class="form-label">Tournament</label><input type="text" class="form-input" id="nb_tournament" placeholder="e.g. T20 World Cup"></div></div>
@@ -545,6 +560,21 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <div class="modal-overlay" id="bulkAddModal"><div class="modal" style="width:960px;max-width:98vw">
 <button class="modal-close" onclick="closeModal('bulkAddModal')">✕</button>
 <div class="modal-title">Bulk Add Bets</div>
+<!-- Paste from Sheet (Bulk) -->
+<div id="bulk_pastePanel" style="margin-bottom:20px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+<button class="btn btn-gold btn-sm" onclick="togglePastePanel('bulk')" id="bulk_pasteToggle">📋 Paste from Sheet</button>
+<span style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:1px">PASTE MULTIPLE ROWS FROM GOOGLE SHEETS</span>
+</div>
+<div id="bulk_pasteArea" style="display:none">
+<textarea class="form-input" id="bulk_pasteInput" rows="5" placeholder="Paste multiple rows from your Google Sheet here (include header row)..." style="resize:vertical;font-size:0.72rem;line-height:1.6;margin-bottom:10px"></textarea>
+<div style="display:flex;gap:8px;align-items:center">
+<button class="btn btn-primary btn-sm" onclick="parseSheetPaste('bulk')">Parse & Fill</button>
+<button class="btn btn-secondary btn-sm" onclick="clearPastePanel('bulk')">Clear</button>
+<span id="bulk_pasteStatus" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)"></span>
+</div>
+</div>
+</div>
 <div class="bulk-fixture-panel"><div class="bulk-section-label">Shared details</div><div class="bulk-fixture-grid"><div class="form-group" style="margin-bottom:0"><label class="form-label">Date</label><input type="date" class="form-input" id="bulk_date"></div><div class="form-group" style="margin-bottom:0"><label class="form-label">Bookmaker</label><input type="text" class="form-input" id="bulk_bookmaker"></div><div class="form-group" style="margin-bottom:0"><label class="form-label">Sport</label><select class="form-select" id="bulk_sport"><option value="Cricket">Cricket</option><option value="Basketball">Basketball</option><option value="Football">Football</option><option value="Other">Other</option></select></div><div class="form-group" style="margin-bottom:0"><label class="form-label">Tournament</label><input type="text" class="form-input" id="bulk_tournament"></div><div class="form-group" style="margin-bottom:0;grid-column:span 2"><label class="form-label">Fixture</label><input type="text" class="form-input" id="bulk_fixture"></div></div></div>
 <div class="bulk-rows-panel"><div class="bulk-section-label" style="padding:12px 14px 0">Singles</div><div style="overflow-x:auto"><table class="bulk-table"><thead><tr><th>Player</th><th>Market</th><th>Sel</th><th>Line</th><th>Stake £</th><th>Odds</th><th>Result</th><th>Scorecard</th><th></th></tr></thead><tbody id="bulkRowsBody"></tbody></table></div><button class="bulk-add-row-btn" onclick="addBulkRow()">+ Add Single</button></div>
 <div class="bulk-rows-panel"><div class="bulk-section-label" style="padding:12px 14px 0">Doubles</div><div id="bulkDoublesContainer" style="padding:0 14px"></div><button class="bulk-add-row-btn" onclick="addBulkDouble()">+ Add Double</button></div>
@@ -632,7 +662,7 @@ const MEMBER_PINS = {
   'MD': { pin: '2809', name: 'MD', initials: 'MD', initialDeposit: 2646.02 },
   'WA': { pin: '4560', name: 'WA', initials: 'WA', initialDeposit: 7021.01 },
   'LC': { pin: '2681', name: 'LC', initials: 'LC', initialDeposit: 1416.30 },
-  'AM': { pin: '0208', name: 'AM', initials: 'AM', initialDeposit: 1088.31 },
+  'AM': { pin: '0208', name: 'AM', initials: 'AM', initialDeposit: 6088.31 },
   'COD': { pin: '2121', name: 'COD', initials: 'COD', initialDeposit: 1834.48 },
   'JL': { pin: '8214', name: 'JL', initials: 'JL', initialDeposit: 773.41 },
   'SB': { pin: '0000', name: 'SB', initials: 'SB', initialDeposit: 4705.22 },
@@ -1391,6 +1421,199 @@ if(currentMemberProfile)buildMFBProfile();
 function initDashboard(){buildKPIs();buildOpenBetsPage();buildEquityChart();buildMonthlyChart();buildWinLossChart();buildSportChart();buildStreak();buildTourneyChart();buildTopBets();populateFilters();renderTable();}
 
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+// ============================================================
+// PASTE FROM GOOGLE SHEETS
+// ============================================================
+
+const SHEET_COLUMNS = ['DATE','PLAYER','TOURNAMENT','LINE','SIM LINE','SIM AVERAGE','BAT POS','BAT POS REAL','EDGE','EV','O/U','BOOK','ODDS','STAKE','RESULT'];
+
+function togglePastePanel(prefix) {
+  const area = document.getElementById(prefix + '_pasteArea');
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+function clearPastePanel(prefix) {
+  document.getElementById(prefix + '_pasteInput').value = '';
+  document.getElementById(prefix + '_pasteStatus').textContent = '';
+}
+
+function parseSheetRows(raw) {
+  // Google Sheets copies as tab-separated values
+  const lines = raw.trim().split('\n').filter(l => l.trim());
+  if (lines.length === 0) return { headers: null, rows: [] };
+
+  // Check if first line is a header row
+  const firstCells = lines[0].split('\t');
+  const isHeader = firstCells.some(c => SHEET_COLUMNS.includes(c.trim().toUpperCase()));
+
+  let headers, dataLines;
+  if (isHeader) {
+    headers = firstCells.map(c => c.trim().toUpperCase());
+    dataLines = lines.slice(1);
+  } else {
+    // Assume default column order
+    headers = SHEET_COLUMNS;
+    dataLines = lines;
+  }
+
+  const rows = dataLines.map(line => {
+    const cells = line.split('\t');
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (cells[i] || '').trim(); });
+    return obj;
+  });
+
+  return { headers, rows };
+}
+
+function mapSheetRowToBet(row) {
+  // Parse date: could be MM/DD/YYYY, DD/MM/YYYY, or YYYY-MM-DD format
+  let dateVal = '';
+  if (row['DATE']) {
+    const raw = row['DATE'];
+    const parts = raw.split('/');
+    if (parts.length === 3) {
+      // Detect format: if first part > 12, it's DD/MM/YYYY; otherwise MM/DD/YYYY
+      const p0 = parseInt(parts[0]), p1 = parseInt(parts[1]);
+      let dd, mm, yyyy;
+      if (p0 > 12) {
+        // DD/MM/YYYY
+        dd = parts[0]; mm = parts[1]; yyyy = parts[2];
+      } else if (p1 > 12) {
+        // MM/DD/YYYY
+        mm = parts[0]; dd = parts[1]; yyyy = parts[2];
+      } else {
+        // Ambiguous — assume MM/DD/YYYY (Google Sheets US default)
+        mm = parts[0]; dd = parts[1]; yyyy = parts[2];
+      }
+      dateVal = yyyy + '-' + mm.padStart(2,'0') + '-' + dd.padStart(2,'0');
+    } else if (raw.includes('-')) {
+      dateVal = raw; // Already ISO
+    }
+  }
+
+  // Map O/U to selection
+  let selection = 'Under';
+  const ou = (row['O/U'] || '').trim().toUpperCase();
+  if (ou === 'O' || ou === 'OVER') selection = 'Over';
+  else if (ou === 'U' || ou === 'UNDER') selection = 'Under';
+  else if (ou) selection = 'Other';
+
+  // Parse stake (remove £ and commas)
+  const stakeRaw = (row['STAKE'] || '').replace(/[£,\s]/g, '');
+  const stake = parseFloat(stakeRaw) || '';
+
+  // Parse odds
+  const odds = parseFloat(row['ODDS']) || '';
+
+  // Parse line
+  const line = parseFloat(row['LINE']) || '';
+
+  // Map result
+  let result = 'Pending';
+  const res = (row['RESULT'] || '').trim().toUpperCase();
+  if (res === 'W' || res === 'WON' || res === 'YES' || res === 'Y') result = 'Yes';
+  else if (res === 'L' || res === 'LOST' || res === 'NO' || res === 'N') result = 'No';
+  else if (res === 'V' || res === 'VOID') result = 'Void';
+  else if (res === 'P' || res === 'PENDING' || res === '') result = 'Pending';
+
+  return {
+    date: dateVal,
+    player: row['PLAYER'] || '',
+    tournament: row['TOURNAMENT'] || '',
+    line: line,
+    selection: selection,
+    bookmaker: row['BOOK'] || '',
+    odds: odds,
+    stake: stake,
+    result: result,
+    market: 'Player Runs',
+    sport: 'Cricket'
+  };
+}
+
+function parseSheetPaste(prefix) {
+  const input = document.getElementById(prefix + '_pasteInput').value;
+  const status = document.getElementById(prefix + '_pasteStatus');
+
+  if (!input.trim()) {
+    status.textContent = '⚠ Nothing to parse';
+    status.style.color = 'var(--red)';
+    return;
+  }
+
+  const { headers, rows } = parseSheetRows(input);
+
+  if (rows.length === 0) {
+    status.textContent = '⚠ No data rows found';
+    status.style.color = 'var(--red)';
+    return;
+  }
+
+  if (prefix === 'nb') {
+    // Single bet mode — fill the Add Bet form with first row
+    const bet = mapSheetRowToBet(rows[0]);
+    if (bet.date) document.getElementById('nb_date').value = bet.date;
+    if (bet.player) document.getElementById('nb_player').value = bet.player;
+    if (bet.tournament) document.getElementById('nb_tournament').value = bet.tournament;
+    if (bet.line) document.getElementById('nb_line').value = bet.line;
+    if (bet.selection) document.getElementById('nb_selection').value = bet.selection;
+    if (bet.bookmaker) document.getElementById('nb_bookmaker').value = bet.bookmaker;
+    if (bet.odds) document.getElementById('nb_odds').value = bet.odds;
+    if (bet.stake) document.getElementById('nb_stake').value = bet.stake;
+    if (bet.result) document.getElementById('nb_result').value = bet.result;
+    if (bet.market) document.getElementById('nb_market').value = bet.market;
+    document.getElementById('nb_sport').value = bet.sport;
+
+    status.textContent = '✓ Filled from sheet row';
+    status.style.color = 'var(--green)';
+    showToast('Form filled from sheet');
+
+  } else if (prefix === 'bulk') {
+    // Bulk mode — fill shared fields from first row, add all as singles
+    const firstBet = mapSheetRowToBet(rows[0]);
+
+    // Fill shared fields
+    if (firstBet.date) document.getElementById('bulk_date').value = firstBet.date;
+    if (firstBet.bookmaker) document.getElementById('bulk_bookmaker').value = firstBet.bookmaker;
+    if (firstBet.tournament) document.getElementById('bulk_tournament').value = firstBet.tournament;
+    document.getElementById('bulk_sport').value = firstBet.sport;
+
+    // Clear existing rows
+    document.getElementById('bulkRowsBody').innerHTML = '';
+
+    // Add each row as a single
+    rows.forEach(row => {
+      const bet = mapSheetRowToBet(row);
+      addBulkRow({
+        player: bet.player,
+        market: bet.market,
+        selection: bet.selection,
+        line: bet.line,
+        stake: bet.stake,
+        odds: bet.odds,
+        result: bet.result
+      });
+    });
+
+    // Set selection values after rows are added (addBulkRow creates selects with default)
+    const tableRows = document.getElementById('bulkRowsBody').querySelectorAll('tr');
+    rows.forEach((row, i) => {
+      if (tableRows[i]) {
+        const bet = mapSheetRowToBet(row);
+        const selects = tableRows[i].querySelectorAll('select');
+        if (selects[0] && bet.selection) selects[0].value = bet.selection;
+        if (selects[1] && bet.result) selects[1].value = bet.result;
+      }
+    });
+
+    updateBulkCount();
+    status.textContent = '✓ ' + rows.length + ' row(s) added';
+    status.style.color = 'var(--green)';
+    showToast(rows.length + ' bets parsed from sheet');
+  }
+}
 
 // ============================================================
 // BOOT
