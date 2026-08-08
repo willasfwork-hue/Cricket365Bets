@@ -568,9 +568,10 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 </div>
 <div id="bulk_pasteArea" style="display:none">
 <textarea class="form-input" id="bulk_pasteInput" rows="5" placeholder="Paste multiple rows from your Google Sheet here (include header row)..." style="resize:vertical;font-size:0.72rem;line-height:1.6;margin-bottom:10px"></textarea>
-<div style="display:flex;gap:8px;align-items:center">
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
 <button class="btn btn-primary btn-sm" onclick="parseSheetPaste('bulk')">Parse & Fill</button>
 <button class="btn btn-secondary btn-sm" onclick="clearPastePanel('bulk')">Clear</button>
+<div style="display:flex;align-items:center;gap:6px;margin-left:12px"><label style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:1px;color:var(--muted);white-space:nowrap">FLAT STAKE £</label><input type="number" class="bulk-input" id="bulk_flatStake" placeholder="e.g. 150" min="1" style="width:90px"></div>
 <span id="bulk_pasteStatus" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted)"></span>
 </div>
 </div>
@@ -957,6 +958,13 @@ mfbCharts['monthly']=new Chart(ctx,{type:'bar',data:{labels:sorted.map(k=>{const
 function buildMFBShareChart(members, initials) {
 destroyMfbChart('share');
 const ctx=document.getElementById('mfbShareChart').getContext('2d');
+if(currentRole!=='admin') {
+  // Non-admin: only show own share vs "Others"
+  const myShare = members[initials]?.sharePercent || 0;
+  const othersShare = 100 - myShare;
+  mfbCharts['share']=new Chart(ctx,{type:'doughnut',data:{labels:['You ('+initials+')', 'Others'],datasets:[{data:[myShare, othersShare],backgroundColor:['rgba(212,160,23,0.8)','rgba(124,148,132,0.3)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'right',labels:{color:'#7c9484',font:{size:11},padding:10}},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw.toFixed(1)}%`},backgroundColor:'#0f1912',borderColor:'#24392a',borderWidth:1,bodyColor:'#eae3d1'}}}});
+  return;
+}
 const memberArr=Object.values(members);
 const labels=memberArr.map(m=>m.initials);
 const data=memberArr.map(m=>m.sharePercent);
@@ -1224,13 +1232,14 @@ return`<div class="ob-card" style="animation-delay:${i*0.04}s"><div class="ob-ca
 function buildKPIs(){
 const settled=BETS.filter(b=>b.won==='Yes'||b.won==='No');const won=BETS.filter(b=>b.won==='Yes');const lost=BETS.filter(b=>b.won==='No');const voids=BETS.filter(b=>b.won==='Void');const pending=BETS.filter(b=>b.won==='Pending');
 const totalStaked=settled.reduce((s,b)=>s+b.stake,0);const totalPL=settled.reduce((s,b)=>s+b.pl,0);const roi=totalStaked?(totalPL/totalStaked*100):0;const winRate=settled.length?(won.length/settled.length*100):0;const avgOdds=settled.length?settled.reduce((s,b)=>s+b.odds,0)/settled.length:0;
-document.getElementById('kpi-row').innerHTML=[
+const kpiItems=[
 {label:'Total P&L',value:`£${fmt(totalPL)}`,cls:'green',color:'green',sub:`ROI: ${roi.toFixed(1)}%`},
 {label:'Total Bets',value:BETS.length,cls:'blue',color:'blue',sub:`${pending.length} pending`},
 {label:'Win Rate',value:`${winRate.toFixed(1)}%`,cls:'gold',color:'gold',sub:`${won.length}W · ${lost.length}L · ${voids.length}V`},
 {label:'Avg Odds',value:avgOdds.toFixed(3),cls:'purple',color:'blue',sub:'Decimal'},
-{label:'Fund NAV',value:`£${fmt(getMemberStats().fundValue)}`,cls:'green',color:'green',sub:'Net Asset Value'},
-].map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.label}</div><div class="kpi-value ${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+];
+if(currentRole==='admin') kpiItems.push({label:'Fund NAV',value:`£${fmt(getMemberStats().fundValue)}`,cls:'green',color:'green',sub:'Net Asset Value'});
+document.getElementById('kpi-row').innerHTML=kpiItems.map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.label}</div><div class="kpi-value ${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
 document.getElementById('betCount').textContent=`${BETS.length} BETS LOADED`;
 const navBadge=document.getElementById('navPendingBadge');if(navBadge){navBadge.textContent=pending.length;navBadge.className='nav-pending-badge'+(pending.length>0?' pulse-anim':'');}
 }
@@ -1358,13 +1367,18 @@ function buildMembersPage(){
 const{members,unitPrice,fundValue}=getMemberStats();
 const memberArr=Object.values(members).sort((a,b)=>b.currentValue-a.currentValue);
 const totalUnits=memberArr.reduce((s,m)=>s+m.units,0);
-document.getElementById('memberKpiRow').innerHTML=[
+const memberKpis = currentRole==='admin' ? [
 {label:'Fund NAV',value:`£${fmt(fundValue)}`,cls:'green',color:'green',sub:'Total fund value'},
 {label:'Unit Price',value:`£${unitPrice.toFixed(4)}`,cls:'blue',color:'blue',sub:'NAV per unit'},
 {label:'Total Units',value:totalUnits.toFixed(2),cls:'gold',color:'gold',sub:'In circulation'},
 {label:'Members',value:memberArr.length,cls:'purple',color:'blue',sub:'Active investors'},
-].map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.label}</div><div class="kpi-value ${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
-document.getElementById('memberGrid').innerHTML=memberArr.map(m=>`<div class="member-card"><div class="member-initial" style="background:${m.color}22;color:${m.color};border:1px solid ${m.color}44">${m.initials}</div><div class="member-name" style="color:${m.color}">${m.initials}</div><div style="font-size:0.7rem;color:var(--muted);font-family:'DM Mono',monospace">${m.sharePercent.toFixed(1)}% share · ${m.units.toFixed(2)} units</div><div class="member-stats"><div class="member-stat"><div class="member-stat-label">Current Value</div><div class="member-stat-val" style="color:var(--text)">£${m.currentValue.toFixed(2)}</div></div><div class="member-stat"><div class="member-stat-label">Net Deposited</div><div class="member-stat-val" style="color:var(--muted)">£${m.netDeposited.toFixed(2)}</div></div><div class="member-stat"><div class="member-stat-label">Total P&L</div><div class="member-stat-val" style="color:${m.unrealisedPL>=0?'var(--green)':'var(--red)'}">${m.unrealisedPL>=0?'+':'-'}£${fmt(m.unrealisedPL)} (${m.unrealisedPLPct.toFixed(1)}%)</div></div><div class="member-stat"><div class="member-stat-label">Deposited</div><div class="member-stat-val" style="color:var(--muted)">£${m.deposited.toFixed(0)}</div></div></div><div class="member-actions admin-only"><button class="btn btn-green btn-sm" onclick="openTx('${m.initials}','Deposit')">+ Deposit</button><button class="btn btn-red btn-sm" onclick="openTx('${m.initials}','Withdrawal')">- Withdraw</button></div></div>`).join('');
+] : [{label:'Members',value:memberArr.length,cls:'purple',color:'blue',sub:'Active investors'}];
+document.getElementById('memberKpiRow').innerHTML=memberKpis.map(k=>`<div class="kpi ${k.cls}"><div class="kpi-label">${k.label}</div><div class="kpi-value ${k.color}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+document.getElementById('memberGrid').innerHTML=memberArr.map(m=>{
+const isAdmin = currentRole==='admin';
+const isOwnCard = currentMemberProfile === m.initials;
+const showFinancials = isAdmin || isOwnCard;
+return `<div class="member-card"><div class="member-initial" style="background:${m.color}22;color:${m.color};border:1px solid ${m.color}44">${m.initials}</div><div class="member-name" style="color:${m.color}">${m.initials}</div>${isAdmin?`<div style="font-size:0.7rem;color:var(--muted);font-family:'DM Mono',monospace">${m.sharePercent.toFixed(1)}% share · ${m.units.toFixed(2)} units</div>`:''}<div class="member-stats">${showFinancials?`<div class="member-stat"><div class="member-stat-label">Current Value</div><div class="member-stat-val" style="color:var(--text)">£${m.currentValue.toFixed(2)}</div></div><div class="member-stat"><div class="member-stat-label">Net Deposited</div><div class="member-stat-val" style="color:var(--muted)">£${m.netDeposited.toFixed(2)}</div></div><div class="member-stat"><div class="member-stat-label">Total P&L</div><div class="member-stat-val" style="color:${m.unrealisedPL>=0?'var(--green)':'var(--red)'}">${m.unrealisedPL>=0?'+':'-'}£${fmt(m.unrealisedPL)} (${m.unrealisedPLPct.toFixed(1)}%)</div></div><div class="member-stat"><div class="member-stat-label">Deposited</div><div class="member-stat-val" style="color:var(--muted)">£${m.deposited.toFixed(0)}</div></div>`:`<div class="member-stat" style="grid-column:span 2"><div class="member-stat-label">Status</div><div class="member-stat-val" style="color:var(--muted)">Active Member</div></div>`}</div><div class="member-actions admin-only"><button class="btn btn-green btn-sm" onclick="openTx('${m.initials}','Deposit')">+ Deposit</button><button class="btn btn-red btn-sm" onclick="openTx('${m.initials}','Withdrawal')">- Withdraw</button></div></div>`;}).join('');
 const sorted=[...TRANSACTIONS].sort((a,b)=>parseDate(b.date)-parseDate(a.date));
 document.getElementById('ledgerBody').innerHTML=sorted.map(tx=>`<tr><td style="font-family:'DM Mono',monospace;color:var(--muted)">${tx.date}</td><td><span style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:${MEMBER_COLORS[tx.initials]||'var(--accent)'}">${tx.initials}</span></td><td><span class="badge ${tx.action==='Deposit'?'badge-won':'badge-lost'}">${tx.action.toUpperCase()}</span></td><td class="${tx.action==='Deposit'?'pl-pos':'pl-neg'}" style="font-family:'DM Mono',monospace">${tx.action==='Deposit'?'+':'-'}£${tx.amount.toFixed(0)}</td><td style="font-family:'DM Mono',monospace;color:var(--muted)">£${tx.unitPrice.toFixed(4)}</td><td style="font-family:'DM Mono',monospace;color:var(--muted)">${tx.units.toFixed(4)}</td><td style="color:var(--muted)">${tx.note}</td><td class="admin-only"><button class="btn btn-secondary btn-sm" onclick="deleteTx(this,'${tx._docId||''}')" style="font-size:0.58rem;color:var(--red);border-color:rgba(224,72,63,0.3)">🗑</button></td></tr>`).join('');
 if(currentRole)applyRole(currentRole);
@@ -1574,6 +1588,10 @@ function parseSheetPaste(prefix) {
     // Bulk mode — fill shared fields from first row, add all as singles
     const firstBet = mapSheetRowToBet(rows[0]);
 
+    // Check for flat stake override
+    const flatStakeVal = parseFloat(document.getElementById('bulk_flatStake').value);
+    const flatStake = (!isNaN(flatStakeVal) && flatStakeVal > 0) ? flatStakeVal : null;
+
     // Fill shared fields
     if (firstBet.date) document.getElementById('bulk_date').value = firstBet.date;
     if (firstBet.bookmaker) document.getElementById('bulk_bookmaker').value = firstBet.bookmaker;
@@ -1591,7 +1609,7 @@ function parseSheetPaste(prefix) {
         market: bet.market,
         selection: bet.selection,
         line: bet.line,
-        stake: bet.stake,
+        stake: flatStake || bet.stake,
         odds: bet.odds,
         result: bet.result
       });
