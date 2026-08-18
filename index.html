@@ -743,11 +743,12 @@ for(const [key, cfg] of Object.entries(MEMBER_PINS)) {
 TRANSACTIONS.forEach(tx=>{const k=tx.initials;if(!members[k])members[k]={initials:k,name:MEMBER_NAMES[k]||k,units:0,deposited:0,withdrawn:0,txCount:0,seededDeposit:0};members[k].units+=tx.units;members[k].txCount++;if(tx.action==='Deposit')members[k].deposited+=tx.amount;if(tx.action==='Withdrawal')members[k].withdrawn+=tx.amount;});
 const settledBets=BETS.filter(b=>b.won!=='Pending');
 const totalPL=settledBets.reduce((s,b)=>s+b.pl,0);
-// For members with no transactions, use their seededDeposit to calculate units at price 1
+// All members get their seededDeposit as base units (at price £1 from inception)
+// Transactions are additional on top of that
 Object.values(members).forEach(m=>{
-  if(m.txCount===0 && m.seededDeposit > 0) {
-    m.units = m.seededDeposit; // 1 unit = £1 at inception
-    m.deposited = m.seededDeposit;
+  if(m.seededDeposit > 0) {
+    m.units += m.seededDeposit; // 1 unit = £1 at inception
+    m.deposited += m.seededDeposit;
   }
 });
 const totalDeposited=Object.values(members).reduce((s,m)=>s+m.deposited,0);
