@@ -327,6 +327,48 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 </div>
 </div>
 
+<!-- MODE SELECTOR -->
+<div id="modeSelector" style="display:none;position:fixed;inset:0;z-index:9998;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;">
+<div style="position:fixed;inset:0;background-image:linear-gradient(rgba(212,160,23,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(212,160,23,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;"></div>
+<div style="position:relative;z-index:1;text-align:center">
+<div class="lock-logo">Cricket Props</div>
+<div class="lock-sub" style="margin-bottom:48px">Select Mode</div>
+<div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap">
+<div onclick="selectMode('props')" style="cursor:pointer;background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:40px 48px;width:260px;transition:all 0.2s;position:relative;overflow:hidden;" onmouseover="this.style.borderColor='rgba(212,160,23,0.5)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+<div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--green))"></div>
+<div style="font-size:2.5rem;margin-bottom:16px">🏏</div>
+<div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:var(--accent);margin-bottom:8px">Player Props</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:1px">BATTING RUNS & PERFORMANCES</div>
+</div>
+<div onclick="selectMode('mainlines')" style="cursor:pointer;background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:40px 48px;width:260px;transition:all 0.2s;position:relative;overflow:hidden;" onmouseover="this.style.borderColor='rgba(201,121,63,0.5)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='translateY(0)'">
+<div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent2),var(--gold))"></div>
+<div style="font-size:2.5rem;margin-bottom:16px">📊</div>
+<div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:var(--accent2);margin-bottom:8px">Mainlines</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:1px">MATCH & TOURNAMENT MARKETS</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- MAINLINES PLACEHOLDER -->
+<div class="app" id="mainlinesApp" style="display:none">
+<header>
+<div>
+<div class="logo">Mainlines</div>
+<div class="logo-sub">Bet365 Cricket Syndicate</div>
+</div>
+<div class="header-right">
+<button onclick="selectMode('props')" style="background:none;border:1px solid var(--border);color:var(--accent);padding:6px 14px;border-radius:5px;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">🏏 PLAYER PROPS</button>
+<div id="roleBadge2" style="font-family:'DM Mono',monospace;font-size:0.68rem;padding:4px 10px;border-radius:4px;border:1px solid var(--border);letter-spacing:1.5px;"></div>
+</div>
+</header>
+<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:20px">
+<div style="font-size:4rem;opacity:0.3">🚧</div>
+<div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:5px;color:var(--accent2)">Under Construction</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);letter-spacing:2px">COMING SOON</div>
+</div>
+</div>
+
 <div class="app" id="mainApp" style="display:none">
 <header>
 <div>
@@ -334,6 +376,7 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <div class="logo-sub">Bet365 Cricket Props Syndicate</div>
 </div>
 <div class="header-right">
+<button onclick="selectMode('mainlines')" style="background:none;border:1px solid var(--border);color:var(--accent2);padding:6px 14px;border-radius:5px;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">📊 MAINLINES</button>
 <div class="live-badge"><div class="live-dot"></div>LIVE TRACKING</div>
 <div id="roleBadge" style="font-family:'DM Mono',monospace;font-size:0.68rem;padding:4px 10px;border-radius:4px;border:1px solid var(--border);letter-spacing:1.5px;"></div>
 <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted)" id="betCount">0 BETS LOADED</div>
@@ -802,9 +845,28 @@ function unlockApp(role, memberKey) {
 currentRole=role;
 currentMemberProfile = memberKey || null;
 document.getElementById('lockScreen').style.display='none';
-document.getElementById('mainApp').style.display='block';
-initDashboard();
-applyRole(role);
+document.getElementById('modeSelector').style.display='flex';
+}
+
+function selectMode(mode) {
+document.getElementById('modeSelector').style.display='none';
+sessionStorage.setItem('syndicateMode', mode);
+if (mode === 'mainlines') {
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('mainlinesApp').style.display='block';
+  // Set role badge on mainlines
+  const badge2 = document.getElementById('roleBadge2');
+  if (badge2) {
+    if (currentRole==='admin') { badge2.textContent='⚙ ADMIN'; badge2.style.color='var(--gold)'; badge2.style.borderColor='var(--gold)'; }
+    else if (currentRole==='member') { badge2.textContent='👤 '+currentMemberProfile; badge2.style.color='var(--accent)'; badge2.style.borderColor='var(--accent)'; }
+    else { badge2.textContent='👁 VIEWER'; badge2.style.color='var(--muted)'; badge2.style.borderColor='var(--border)'; }
+  }
+} else {
+  document.getElementById('mainlinesApp').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  initDashboard();
+  applyRole(currentRole);
+}
 }
 
 function applyRole(role) {
@@ -1753,11 +1815,17 @@ hideLoading();
 const savedRole=sessionStorage.getItem('syndicateAuth');
 const savedMember=sessionStorage.getItem('syndicateMember');
 if(savedRole==='admin'||savedRole==='viewer'||savedRole==='member'){
-  document.getElementById('lockScreen').style.display='none';
-  document.getElementById('mainApp').style.display='block';
+  currentRole=savedRole;
   currentMemberProfile=savedMember||null;
-  initDashboard();
-  applyRole(savedRole);
+  document.getElementById('lockScreen').style.display='none';
+  const savedMode=sessionStorage.getItem('syndicateMode');
+  if(savedMode==='mainlines'){
+    selectMode('mainlines');
+  } else if(savedMode==='props'){
+    selectMode('props');
+  } else {
+    document.getElementById('modeSelector').style.display='flex';
+  }
 }
 document.getElementById('lockInput').focus();
 })();
