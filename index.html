@@ -613,9 +613,9 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <button class="modal-close" onclick="closeModal('txModal')">✕</button>
 <div class="modal-title" id="txModalTitle">Deposit</div>
 <div id="txMemberInfo" style="margin-bottom:16px;font-size:0.82rem;color:var(--muted)"></div>
-<div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="tx_date"></div>
+<div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="tx_date" onchange="lookupUnitPriceForDate()"></div>
 <div class="form-group"><label class="form-label">Amount (£)</label><input type="number" class="form-input" id="tx_amount" placeholder="e.g. 500" min="1"></div>
-<div class="form-group"><label class="form-label">Unit Price Override (£)</label><input type="number" class="form-input" id="tx_unit_price_override" placeholder="Auto (current price)" min="0.0001" step="0.0001"><div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px" id="tx_price_hint"></div></div>
+<div class="form-group"><label class="form-label">Unit Price Override (£)</label><input type="number" class="form-input" id="tx_unit_price_override" placeholder="Auto (current price)" min="0.0001" step="0.0001"><div style="font-size:0.62rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px" id="tx_price_hint"></div><div style="font-size:0.62rem;color:var(--accent);font-family:'DM Mono',monospace;margin-top:3px" id="tx_date_price_hint"></div></div>
 <div class="form-group"><label class="form-label">Note (optional)</label><input type="text" class="form-input" id="tx_note" placeholder="e.g. Top-up"></div>
 <div style="display:flex;gap:12px;justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('txModal')">Cancel</button><button class="btn btn-primary" id="txConfirmBtn" onclick="confirmTransaction()">Confirm</button></div>
 </div></div>
@@ -679,10 +679,10 @@ const MEMBER_PINS = {
   'AM': { pin: '0208', name: 'AM', initials: 'AM', initialDeposit: 6088.31 },
   'COD': { pin: '2121', name: 'COD', initials: 'COD', initialDeposit: 1834.48 },
   'JL': { pin: '8214', name: 'JL', initials: 'JL', initialDeposit: 773.41 },
-  'SB': { pin: '0000', name: 'SB', initials: 'SB', initialDeposit: 4705.22 },
+  'SB': { pin: 'SimonBetty1', name: 'SB', initials: 'SB', initialDeposit: 4705.22 },
   'DF': { pin: 'DanFage1', name: 'DF', initials: 'DF', initialDeposit: 1844.37 },
-  'EW': { pin: '0002', name: 'EW', initials: 'EW', initialDeposit: 1245.31 },
-  'PM': { pin: '0004', name: 'PM', initials: 'PM', initialDeposit: 9705.06 }
+  'EW': { pin: 'EmmaWells1', name: 'EW', initials: 'EW', initialDeposit: 1245.31 },
+  'PM': { pin: 'PaulMann1', name: 'PM', initials: 'PM', initialDeposit: 9705.06 }
 };
 // Legacy passwords still work
 const LEGACY_ADMIN = 'Angstrom1!';
@@ -1330,7 +1330,7 @@ try{await sbAddBet(bet);showToast(`Bet #${bet.id} saved`);}catch(e){showToast('S
 // BULK ADD
 // ============================================================
 function openBulkAdd(){const today=new Date();document.getElementById('bulk_date').value=today.toISOString().split('T')[0];if(BETS.length>0){const last=BETS[BETS.length-1];document.getElementById('bulk_bookmaker').value=last.bookmaker||'';document.getElementById('bulk_sport').value=last.sport||'Cricket';document.getElementById('bulk_tournament').value=last.tournament||'';document.getElementById('bulk_fixture').value=last.fixture||'';}else{document.getElementById('bulk_bookmaker').value='';document.getElementById('bulk_tournament').value='';document.getElementById('bulk_fixture').value='';}document.getElementById('bulkRowsBody').innerHTML='';document.getElementById('bulkDoublesContainer').innerHTML='';addBulkRow();addBulkRow();addBulkRow();updateBulkCount();document.getElementById('bulkAddModal').classList.add('open');}
-function addBulkRow(defaults={}){const tbody=document.getElementById('bulkRowsBody');const last=BETS.length>0?BETS[BETS.length-1]:null;const defStake=defaults.stake||(last?last.stake:'');const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="bulk-input" placeholder="Player" value="${defaults.player||''}"></td><td><input type="text" class="bulk-input" placeholder="Market" value="${defaults.market||''}"></td><td><select class="bulk-select"><option value="Over">Over</option><option value="Under">Under</option><option value="Other">Other</option></select></td><td><input type="number" class="bulk-input" placeholder="Line" step="0.5" value="${defaults.line||''}"></td><td><input type="number" class="bulk-input" placeholder="£" value="${defStake}" min="1"></td><td><input type="number" class="bulk-input" placeholder="Odds" step="0.001" value="${defaults.odds||''}"></td><td><select class="bulk-select"><option value="Pending">Pending</option><option value="Yes">Won</option><option value="No">Lost</option><option value="Void">Void</option></select></td><td><input type="url" class="bulk-input" placeholder="scorecard link" value="${defaults.scorecardUrl||''}"></td><td><button class="bulk-remove-btn" onclick="this.closest('tr').remove();updateBulkCount()">×</button></td>`;tbody.appendChild(tr);updateBulkCount();}
+function addBulkRow(defaults={}){const tbody=document.getElementById('bulkRowsBody');const last=BETS.length>0?BETS[BETS.length-1]:null;const defStake=defaults.stake!=null?defaults.stake:(last?last.stake:'');const defOdds=defaults.odds!=null?defaults.odds:'';const tr=document.createElement('tr');tr.innerHTML=`<td><input type="text" class="bulk-input" placeholder="Player" value="${defaults.player||''}"></td><td><input type="text" class="bulk-input" placeholder="Market" value="${defaults.market||''}"></td><td><select class="bulk-select"><option value="Over">Over</option><option value="Under">Under</option><option value="Other">Other</option></select></td><td><input type="number" class="bulk-input" placeholder="Line" step="0.5" value="${defaults.line!=null?defaults.line:''}"></td><td><input type="number" class="bulk-input" placeholder="£" value="${defStake}" min="1"></td><td><input type="number" class="bulk-input" placeholder="Odds" step="0.001" value="${defOdds}"></td><td><select class="bulk-select"><option value="Pending">Pending</option><option value="Yes">Won</option><option value="No">Lost</option><option value="Void">Void</option></select></td><td><input type="url" class="bulk-input" placeholder="scorecard link" value="${defaults.scorecardUrl||''}"></td><td><button class="bulk-remove-btn" onclick="this.closest('tr').remove();updateBulkCount()">×</button></td>`;tbody.appendChild(tr);updateBulkCount();}
 function addBulkDouble(){const div=document.createElement('div');div.className='bulk-double-card';const legHtml=(n)=>`<div class="bulk-dbl-leg" data-leg="${n}"><div class="bulk-leg-label">Leg ${n}</div><input type="text" class="bulk-input dbl-fixture" placeholder="Fixture" style="margin-bottom:6px"><input type="text" class="bulk-input dbl-market" placeholder="Market" style="margin-bottom:6px"><input type="text" class="bulk-input dbl-player" placeholder="Player" style="margin-bottom:6px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><select class="bulk-select dbl-selection"><option value="Over">Over</option><option value="Under">Under</option><option value="Other">Other</option></select><input type="number" class="bulk-input dbl-line" step="0.5" placeholder="Line"></div><input type="url" class="bulk-input dbl-scorecard" placeholder="Scorecard link"></div>`;div.innerHTML=`<div class="bulk-double-card-head"><span class="double-badge">Double</span><button class="bulk-remove-btn" onclick="this.closest('.bulk-double-card').remove();updateBulkCount()">×</button></div><div class="bulk-double-legs">${legHtml(1)}${legHtml(2)}</div><div class="bulk-double-tail"><input type="number" class="bulk-input dbl-stake" placeholder="Stake £" min="1"><input type="number" class="bulk-input dbl-odds" step="0.001" placeholder="Combined Odds"><select class="bulk-select dbl-result"><option value="Pending">Pending</option><option value="Yes">Won</option><option value="No">Lost</option><option value="Void">Void</option></select></div>`;document.getElementById('bulkDoublesContainer').appendChild(div);updateBulkCount();}
 function updateBulkCount(){const n=document.getElementById('bulkRowsBody').children.length+document.getElementById('bulkDoublesContainer').children.length;document.getElementById('bulkRowCount').textContent=n;document.getElementById('bulkSubmitBtn').textContent=`Add ${n} Bet${n!==1?'s':''}`;}
 function makeDateStr(dateRaw){const d=new Date(dateRaw);const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yyyy=d.getFullYear();return{str:`${dd}/${mm}/${yyyy}`,d};}
@@ -1435,7 +1435,64 @@ buildUnitPriceChart();
 if(currentRole)applyRole(currentRole);
 }
 
-function openTx(initials,action){txMemberInitials=initials;txAction=action;document.getElementById('txModalTitle').textContent=`${action} — ${initials}`;document.getElementById('txMemberInfo').textContent=action==='Withdrawal'?'Units deducted at current price.':'New units issued at current price.';document.getElementById('txConfirmBtn').className=`btn ${action==='Deposit'?'btn-green':'btn-red'} btn-sm`;document.getElementById('tx_date').value=new Date().toISOString().split('T')[0];document.getElementById('tx_amount').value='';document.getElementById('tx_note').value='';document.getElementById('tx_unit_price_override').value='';document.getElementById('tx_price_hint').textContent=`Current: £${getMemberStats().unitPrice.toFixed(4)}`;document.getElementById('txModal').classList.add('open');}
+function openTx(initials,action){txMemberInitials=initials;txAction=action;document.getElementById('txModalTitle').textContent=`${action} — ${initials}`;document.getElementById('txMemberInfo').textContent=action==='Withdrawal'?'Units deducted at current price.':'New units issued at current price.';document.getElementById('txConfirmBtn').className=`btn ${action==='Deposit'?'btn-green':'btn-red'} btn-sm`;document.getElementById('tx_date').value=new Date().toISOString().split('T')[0];document.getElementById('tx_amount').value='';document.getElementById('tx_note').value='';document.getElementById('tx_unit_price_override').value='';document.getElementById('tx_price_hint').textContent=`Current: £${getMemberStats().unitPrice.toFixed(4)}`;document.getElementById('tx_date_price_hint').textContent='';document.getElementById('txModal').classList.add('open');}
+
+function lookupUnitPriceForDate() {
+  const dateInput = document.getElementById('tx_date').value;
+  const hint = document.getElementById('tx_date_price_hint');
+  const overrideField = document.getElementById('tx_unit_price_override');
+  if (!dateInput) { hint.textContent = ''; return; }
+
+  const targetDate = new Date(dateInput);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  targetDate.setHours(0,0,0,0);
+
+  // If today or future, use current price
+  if (targetDate >= today) {
+    hint.textContent = '';
+    return;
+  }
+
+  // Calculate unit price as of that date:
+  // Unit price = fundValue / totalUnits
+  // fundValue = totalDeposited - totalWithdrawn + P&L up to that date
+  // We need P&L of all settled bets on or before that date
+
+  const plUpToDate = BETS.filter(b => {
+    if (b.won === 'Pending') return false;
+    if (!b.dateObj) return false;
+    return b.dateObj <= targetDate;
+  }).reduce((s, b) => s + b.pl, 0);
+
+  // Get total deposits/withdrawals up to that date
+  const txUpToDate = TRANSACTIONS.filter(tx => {
+    const txDate = parseDate(tx.date);
+    return txDate && txDate <= targetDate;
+  });
+
+  // Calculate total units and fund value as of that date
+  let totalDeposited = 0, totalWithdrawn = 0, totalUnits = 0;
+
+  // Seed from MEMBER_PINS (initial deposits all count from inception)
+  for (const [key, cfg] of Object.entries(MEMBER_PINS)) {
+    totalDeposited += cfg.initialDeposit;
+    totalUnits += cfg.initialDeposit; // 1 unit = £1 at inception
+  }
+
+  // Add/subtract transactions up to that date
+  txUpToDate.forEach(tx => {
+    totalUnits += tx.units;
+    if (tx.action === 'Deposit') totalDeposited += tx.amount;
+    if (tx.action === 'Withdrawal') totalWithdrawn += tx.amount;
+  });
+
+  const fundValue = totalDeposited - totalWithdrawn + plUpToDate;
+  const unitPrice = totalUnits > 0 ? fundValue / totalUnits : 1;
+
+  hint.textContent = `Price on ${targetDate.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})}: £${unitPrice.toFixed(4)}`;
+  overrideField.value = unitPrice.toFixed(4);
+}
 
 function confirmTransaction(){const amount=parseFloat(document.getElementById('tx_amount').value);const note=document.getElementById('tx_note').value.trim()||txAction;if(!amount||isNaN(amount)||amount<=0){showToast('Enter valid amount','error');return;}const currentStats=getMemberStats();const overrideInput=parseFloat(document.getElementById('tx_unit_price_override').value);const unitPrice=(!isNaN(overrideInput)&&overrideInput>0)?overrideInput:currentStats.unitPrice;const units=txAction==='Deposit'?amount/unitPrice:-(amount/unitPrice);const txDateInput=document.getElementById('tx_date').value;let txDateStr;if(txDateInput){const d=new Date(txDateInput);const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yyyy=d.getFullYear();txDateStr=`${dd}/${mm}/${yyyy}`;}else{const today=new Date();const dd=String(today.getDate()).padStart(2,'0'),mm=String(today.getMonth()+1).padStart(2,'0'),yyyy=today.getFullYear();txDateStr=`${dd}/${mm}/${yyyy}`;}TRANSACTIONS.push({date:txDateStr,member:txMemberInitials,initials:txMemberInitials,action:txAction,amount,unitPrice,units,note});closeModal('txModal');buildMembersPage();buildKPIs();const _tx=TRANSACTIONS[TRANSACTIONS.length-1];showToast('Saving...');sbAddTransaction(_tx).then(()=>showToast('Saved')).catch(e=>{showToast('Failed','error');});}
 
@@ -1567,13 +1624,15 @@ function mapSheetRowToBet(row) {
 
   // Parse stake (remove £ and commas)
   const stakeRaw = (row['STAKE'] || '').replace(/[£,\s]/g, '');
-  const stake = parseFloat(stakeRaw) || '';
+  const stake = isNaN(parseFloat(stakeRaw)) ? '' : parseFloat(stakeRaw);
 
-  // Parse odds
-  const odds = parseFloat(row['ODDS']) || '';
+  // Parse odds (remove any non-numeric except decimal point)
+  const oddsRaw = (row['ODDS'] || '').replace(/[^\d.]/g, '');
+  const odds = isNaN(parseFloat(oddsRaw)) ? '' : parseFloat(oddsRaw);
 
   // Parse line
-  const line = parseFloat(row['LINE']) || '';
+  const lineRaw = (row['LINE'] || '').replace(/[^\d.]/g, '');
+  const line = isNaN(parseFloat(lineRaw)) ? '' : parseFloat(lineRaw);
 
   // Map result
   let result = 'Pending';
