@@ -425,6 +425,10 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 </div>
 <div class="kpi-row" id="memberKpiRow" style="grid-template-columns:repeat(4,1fr)"></div>
 <div class="member-grid" id="memberGrid"></div>
+<div class="card" style="margin-bottom:20px">
+<div class="card-title">Unit Price History</div>
+<div class="chart-wrap"><canvas id="unitPriceChart" height="200"></canvas></div>
+</div>
 <div class="card">
 <div class="card-title">Transaction Ledger</div>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Member</th><th>Action</th><th>Amount</th><th>Unit Price</th><th>Units</th><th>Note</th><th class="admin-only"></th></tr></thead><tbody id="ledgerBody"></tbody></table></div>
@@ -516,6 +520,15 @@ tbody tr.row-pending td:first-child { padding-left: 9px; }
 <input class="lock-input" type="password" id="memberPinInput" placeholder="••••" maxlength="8" onkeydown="if(event.key==='Enter')checkMemberPin()">
 <br><button class="btn btn-primary" onclick="checkMemberPin()" style="margin-top:8px">View Profile</button>
 <div class="lock-error" id="memberPinError" style="margin-top:12px"></div>
+</div>
+</div>
+
+<!-- Viewer block (shown when viewer role on members tab) -->
+<div id="memberViewerBlock" style="display:none">
+<div class="member-pin-gate">
+<div class="lock-icon">🔒</div>
+<div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(--muted);margin-bottom:8px">Restricted</div>
+<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:1px">Member holdings are not available in viewer mode</div>
 </div>
 </div>
 </div>
@@ -667,13 +680,13 @@ const MEMBER_PINS = {
   'COD': { pin: '2121', name: 'COD', initials: 'COD', initialDeposit: 1834.48 },
   'JL': { pin: '8214', name: 'JL', initials: 'JL', initialDeposit: 773.41 },
   'SB': { pin: '0000', name: 'SB', initials: 'SB', initialDeposit: 4705.22 },
-  'DF': { pin: '0001', name: 'DF', initials: 'DF', initialDeposit: 1844.37 },
+  'DF': { pin: 'DanFage1', name: 'DF', initials: 'DF', initialDeposit: 1844.37 },
   'EW': { pin: '0002', name: 'EW', initials: 'EW', initialDeposit: 1245.31 },
   'PM': { pin: '0004', name: 'PM', initials: 'PM', initialDeposit: 9705.06 }
 };
 // Legacy passwords still work
 const LEGACY_ADMIN = 'Angstrom1!';
-const LEGACY_VIEWER = 'CricketBets1!';
+const LEGACY_VIEWER = 'Angstrom2026!';
 
 let BETS = [];
 let nextId = 1;
@@ -812,14 +825,21 @@ const mfbProfile = document.getElementById('membersMFBProfile');
 const pinGate = document.getElementById('memberPinGate');
 if(currentRole === 'admin') {
   adminView.style.display=''; mfbProfile.style.display='none'; pinGate.style.display='none';
+  document.getElementById('memberViewerBlock').style.display='none';
   // Show "My Profile" button if admin is also a member
   const btn = document.getElementById('adminViewProfileBtn');
   if(btn) btn.style.display = currentMemberProfile ? '' : 'none';
 } else if(currentRole === 'member' && currentMemberProfile) {
   adminView.style.display='none'; mfbProfile.style.display=''; pinGate.style.display='none';
+  document.getElementById('memberViewerBlock').style.display='none';
   buildMFBProfile();
+} else if(currentRole === 'viewer') {
+  // Viewers cannot see any member holdings
+  adminView.style.display='none'; mfbProfile.style.display='none'; pinGate.style.display='none';
+  document.getElementById('memberViewerBlock').style.display='';
 } else {
   adminView.style.display='none'; mfbProfile.style.display='none'; pinGate.style.display='';
+  document.getElementById('memberViewerBlock').style.display='none';
 }
 }
 
@@ -1363,6 +1383,36 @@ document.getElementById('calendarHeat').innerHTML=`<div style="display:flex;flex
 // MEMBERS PAGE (Admin view)
 // ============================================================
 let txMemberInitials=null,txAction=null;
+function buildUnitPriceChart(){
+destroyChart('unitPrice');
+const ctx=document.getElementById('unitPriceChart');
+if(!ctx)return;
+
+// Calculate unit price at each date a bet was settled
+// Unit price = fundValue / totalUnits
+// fundValue = totalDeposited - totalWithdrawn + runningPL at that point
+const totalDeposited = Object.values(MEMBER_PINS).reduce((s,cfg)=>s+cfg.initialDeposit,0) + TRANSACTIONS.filter(tx=>tx.action==='Deposit').reduce((s,tx)=>s+tx.amount,0);
+const totalWithdrawn = TRANSACTIONS.filter(tx=>tx.action==='Withdrawal').reduce((s,tx)=>s+tx.amount,0);
+const totalUnits = Object.values(MEMBER_PINS).reduce((s,cfg)=>s+cfg.initialDeposit,0) + TRANSACTIONS.reduce((s,tx)=>s+tx.units,0);
+
+const settledBets = BETS.filter(b=>b.won!=='Pending' && b.dateObj).sort((a,b)=>a.dateObj-b.dateObj);
+if(settledBets.length===0) return;
+
+// Group by date to get daily unit price
+const dailyPrices = {};
+let runPL = 0;
+settledBets.forEach(b=>{
+  runPL += b.pl;
+  const fundValue = totalDeposited - totalWithdrawn + runPL;
+  const unitPrice = totalUnits > 0 ? fundValue / totalUnits : 1;
+  dailyPrices[b.date] = unitPrice;
+});
+
+const dates = Object.keys(dailyPrices);
+const prices = Object.values(dailyPrices);
+
+charts['unitPrice']=new Chart(ctx.getContext('2d'),{type:'line',data:{labels:dates,datasets:[{label:'Unit Price',data:prices,borderColor:'#d4a017',borderWidth:2,fill:true,backgroundColor:(c)=>{const g=c.chart.ctx.createLinearGradient(0,0,0,180);g.addColorStop(0,'rgba(212,160,23,0.15)');g.addColorStop(1,'rgba(212,160,23,0)');return g;},tension:0.3,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:'#d4a017'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`£${c.raw.toFixed(4)}`},backgroundColor:'#0f1912',borderColor:'#24392a',borderWidth:1,bodyColor:'#eae3d1'}},scales:{x:{grid:{display:false},ticks:{color:'#7c9484',font:{size:9},maxTicksLimit:12}},y:{grid:{color:'rgba(36,57,42,0.5)'},ticks:{color:'#7c9484',callback:v=>`£${v.toFixed(4)}`}}}}});
+}
 function buildMembersPage(){
 const{members,unitPrice,fundValue}=getMemberStats();
 const memberArr=Object.values(members).sort((a,b)=>b.currentValue-a.currentValue);
@@ -1381,6 +1431,7 @@ const showFinancials = isAdmin || isOwnCard;
 return `<div class="member-card"><div class="member-initial" style="background:${m.color}22;color:${m.color};border:1px solid ${m.color}44">${m.initials}</div><div class="member-name" style="color:${m.color}">${m.initials}</div>${isAdmin?`<div style="font-size:0.7rem;color:var(--muted);font-family:'DM Mono',monospace">${m.sharePercent.toFixed(1)}% share · ${m.units.toFixed(2)} units</div>`:''}<div class="member-stats">${showFinancials?`<div class="member-stat"><div class="member-stat-label">Current Value</div><div class="member-stat-val" style="color:var(--text)">£${m.currentValue.toFixed(2)}</div></div><div class="member-stat"><div class="member-stat-label">Net Deposited</div><div class="member-stat-val" style="color:var(--muted)">£${m.netDeposited.toFixed(2)}</div></div><div class="member-stat"><div class="member-stat-label">Total P&L</div><div class="member-stat-val" style="color:${m.unrealisedPL>=0?'var(--green)':'var(--red)'}">${m.unrealisedPL>=0?'+':'-'}£${fmt(m.unrealisedPL)} (${m.unrealisedPLPct.toFixed(1)}%)</div></div><div class="member-stat"><div class="member-stat-label">Deposited</div><div class="member-stat-val" style="color:var(--muted)">£${m.deposited.toFixed(0)}</div></div>`:`<div class="member-stat" style="grid-column:span 2"><div class="member-stat-label">Status</div><div class="member-stat-val" style="color:var(--muted)">Active Member</div></div>`}</div><div class="member-actions admin-only"><button class="btn btn-green btn-sm" onclick="openTx('${m.initials}','Deposit')">+ Deposit</button><button class="btn btn-red btn-sm" onclick="openTx('${m.initials}','Withdrawal')">- Withdraw</button></div></div>`;}).join('');
 const sorted=[...TRANSACTIONS].sort((a,b)=>parseDate(b.date)-parseDate(a.date));
 document.getElementById('ledgerBody').innerHTML=sorted.map(tx=>`<tr><td style="font-family:'DM Mono',monospace;color:var(--muted)">${tx.date}</td><td><span style="font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:${MEMBER_COLORS[tx.initials]||'var(--accent)'}">${tx.initials}</span></td><td><span class="badge ${tx.action==='Deposit'?'badge-won':'badge-lost'}">${tx.action.toUpperCase()}</span></td><td class="${tx.action==='Deposit'?'pl-pos':'pl-neg'}" style="font-family:'DM Mono',monospace">${tx.action==='Deposit'?'+':'-'}£${tx.amount.toFixed(0)}</td><td style="font-family:'DM Mono',monospace;color:var(--muted)">£${tx.unitPrice.toFixed(4)}</td><td style="font-family:'DM Mono',monospace;color:var(--muted)">${tx.units.toFixed(4)}</td><td style="color:var(--muted)">${tx.note}</td><td class="admin-only"><button class="btn btn-secondary btn-sm" onclick="deleteTx(this,'${tx._docId||''}')" style="font-size:0.58rem;color:var(--red);border-color:rgba(224,72,63,0.3)">🗑</button></td></tr>`).join('');
+buildUnitPriceChart();
 if(currentRole)applyRole(currentRole);
 }
 
